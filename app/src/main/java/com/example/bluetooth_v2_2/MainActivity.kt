@@ -6,31 +6,30 @@ import android.bluetooth.BluetoothSocket
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
-import android.os.Message
-import android.widget.Button
-import android.widget.TextView
+import android.os.Looper
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.io.IOException
 import java.io.InputStream
 import java.util.*
 
-class MainActivity : AppCompatActivity(){
+class MainActivity : AppCompatActivity() {
 
     private val bluetoothAdapter: BluetoothAdapter? by lazy { BluetoothAdapter.getDefaultAdapter() }
     private var bluetoothServerSocket: BluetoothServerSocket? = null
     private var bluetoothSocket: BluetoothSocket? = null
     private var inputStream: InputStream? = null
-    private var textview: TextView? = null
+    private val handler = Handler(Looper.getMainLooper())
 
+    companion object {
+        const val REQUEST_BLUETOOTH_CONNECT_PERMISSION = 1
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         startBluetoothServer()
-
-
     }
 
     private fun startBluetoothServer() {
@@ -45,50 +44,49 @@ class MainActivity : AppCompatActivity(){
         }
 
         try {
-
-            if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED){
+            if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
                 val uuid = UUID.randomUUID()
                 bluetoothServerSocket = bluetoothAdapter!!.listenUsingRfcommWithServiceRecord("BluetoothExample", uuid)
-            }
-            else{
-                requestPermissions(arrayOf(android.Manifest.permission.BLUETOOTH_CONNECT), REQUEST_BLUETOOTH_CONNECT_PERMISSION)
 
-            }
+                Thread {
+                    try {
+                        // ตรวจสอบก่อนใช้งาน
+                        if (bluetoothServerSocket != null) {
+                            bluetoothSocket = bluetoothServerSocket!!.accept()
+                            inputStream = bluetoothSocket!!.inputStream
 
-            Thread {
-                try {
-                    bluetoothSocket = bluetoothServerSocket!!.accept()
-                    inputStream = bluetoothSocket!!.inputStream
+                            val buffer = ByteArray(1024)
+                            var bytes: Int
 
-                    val buffer = ByteArray(1024)
-                    var bytes: Int
-
-                    while (true) {
-                        bytes = inputStream!!.read(buffer)
-                        if (bytes == -1){
-                            break
+                            while (true) {
+                                bytes = inputStream!!.read(buffer)
+                                if (bytes == -1) {
+                                    break
+                                }
+                                val incomingMessage = String(buffer, 0, bytes)
+                                handler.post {
+                                    showToast("Received data: $incomingMessage")
+                                }
+                            }
+                        } else {
+                            showToast("Bluetooth server socket is null")
                         }
-                        val incomingMessage = String(buffer, 0, bytes)
-                        showToast("Received data: $incomingMessage")
-
-                       // textview = findViewById(R.id.receivedDataTextView)
-                        //textview.setText(incomingMessage)
-
-                        // You can handle the received data as needed.
-                        // For example, update UI or perform other actions.
+                    } catch (e: IOException) {
+                        showToast("Error receiving data: ${e.message}")
+                    } finally {
+                        inputStream?.close()
+                        bluetoothSocket?.close()
+                        bluetoothServerSocket?.close()
                     }
+                }.start()
 
-                } catch (e: IOException) {
-                    showToast("Error receiving data: ${e.message}")
-                } finally {
-                    inputStream?.close()
-                    bluetoothSocket?.close()
-                    bluetoothServerSocket?.close()
-                }
-            }.start()
-
+            } else {
+                requestPermissions(arrayOf(android.Manifest.permission.BLUETOOTH_CONNECT), REQUEST_BLUETOOTH_CONNECT_PERMISSION)
+            }
         } catch (e: IOException) {
-            showToast("Error starting Bluetooth server: ${e.message}")
+            handler.post {
+                showToast("Error starting Bluetooth server: ${e.message}")
+            }
         }
     }
 
@@ -96,8 +94,5 @@ class MainActivity : AppCompatActivity(){
         runOnUiThread {
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
-    }
-    companion object{
-        const val REQUEST_BLUETOOTH_CONNECT_PERMISSION = 1
     }
 }
