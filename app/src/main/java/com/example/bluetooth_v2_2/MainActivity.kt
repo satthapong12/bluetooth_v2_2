@@ -65,11 +65,13 @@ class MainActivity : AppCompatActivity(){
 
                     while (true) {
                         bytes = inputStream!!.read(buffer)
+                        if (bytes == -1){
+                            break
+                        }
                         val incomingMessage = String(buffer, 0, bytes)
-
                         showToast("Received data: $incomingMessage")
 
-                        textview = findViewById(R.id.receivedDataTextView)
+                       // textview = findViewById(R.id.receivedDataTextView)
                         //textview.setText(incomingMessage)
 
                         // You can handle the received data as needed.
@@ -81,6 +83,7 @@ class MainActivity : AppCompatActivity(){
                 } finally {
                     inputStream?.close()
                     bluetoothSocket?.close()
+                    bluetoothServerSocket?.close()
                 }
             }.start()
 
