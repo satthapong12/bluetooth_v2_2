@@ -1,11 +1,13 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id ("kotlin-kapt")
 }
 
 android {
     namespace = "com.example.bluetooth_v2_2"
     compileSdk = 34
+
 
     defaultConfig {
         applicationId = "com.example.bluetooth_v2_2"
@@ -15,6 +17,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        dataBinding = true
     }
 
     buildTypes {
@@ -36,7 +42,7 @@ android {
 }
 
 dependencies {
-
+    //kapt ("com.android.data-binding:compiler:7.4.0")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
